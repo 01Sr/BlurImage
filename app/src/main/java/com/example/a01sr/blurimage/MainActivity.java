@@ -36,7 +36,7 @@ public class MainActivity extends AppCompatActivity {
         //修改后的图
         ImageView blurImageView = new ImageView(this);
         root.addView(blurImageView ,new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT));
-        new BlurTask(blurImageView).execute(mutableBitmap);
+        new BlurTask(blurImageView).execute(bitmap, mutableBitmap);
     }
 
     class Node{
@@ -96,6 +96,7 @@ public class MainActivity extends AppCompatActivity {
             Log.i("###","l="+l);
             long start = System.currentTimeMillis();
             Bitmap bitmap = bitmaps[0];
+            Bitmap blurBitmap = bitmaps[1];
             //保存相对坐标
             /*
             以9个点为例
@@ -132,8 +133,8 @@ public class MainActivity extends AppCompatActivity {
             }
 
 //            Map<Node,Integer> map = new HashMap<>();
-            int widthL = bitmap.getWidth();
-            int heightL = bitmap.getHeight();
+            int widthL = blurBitmap.getWidth();
+            int heightL = blurBitmap.getHeight();
             Log.i("####","width="+widthL+" height="+heightL);
             for(int i = 0; i < widthL; i++){
                 for(int j = 0; j< heightL; j++){
@@ -167,12 +168,12 @@ public class MainActivity extends AppCompatActivity {
                     int ob = Color.blue(ocolor);
                     blurColor = Color.argb((int)alpha,(int)r,(int)g,(int)b);
                     Log.i("####","color="+oa+" "+or+" "+og+" "+ob+" "+" ;blurColor="+(int)alpha+" "+(int)r+" "+(int)g+" "+(int)b);
-                    bitmap.setPixel(i,j, blurColor);
+                    blurBitmap.setPixel(i,j, blurColor);
                 }
             }
             long end = System.currentTimeMillis();
             Log.i("###","---运行时间："+(end - start));
-            return bitmap;
+            return blurBitmap;
         }
 
         @Override
