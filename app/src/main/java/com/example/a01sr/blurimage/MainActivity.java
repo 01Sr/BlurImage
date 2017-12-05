@@ -25,7 +25,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         LinearLayout root = this.findViewById(R.id.root);
         //这样获得的bitmap是不可修改的
-        Bitmap bitmap = BitmapFactory.decodeResource(getResources(), R.drawable.a);
+        Bitmap bitmap = BitmapFactory.decodeResource(getResources(), R.drawable.b);
         //复制一份可修改的
         Bitmap mutableBitmap = bitmap.copy(Bitmap.Config.ARGB_8888, true);
         //原图
@@ -44,8 +44,8 @@ public class MainActivity extends AppCompatActivity {
         private final int y;
 
         public Node(int x, int y) {
-            this.x = x<0?0:x;
-            this.y = y<0?0:y;
+            this.x = x;
+            this.y = y;
         }
 
         public int getX() {
@@ -73,6 +73,14 @@ public class MainActivity extends AppCompatActivity {
             Node o = (Node) obj;
             return (o.getX()==this.getX()&&o.getY()==this.getY());
         }
+
+        @Override
+        public String toString() {
+            return "Node{" +
+                    "x=" + x +
+                    ", y=" + y +
+                    '}';
+        }
     }
 
     class BlurTask extends AsyncTask<Bitmap, Float, Bitmap>{
@@ -83,6 +91,9 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         protected Bitmap doInBackground(Bitmap... bitmaps) {
+            int size = 5*5;
+            int l = (int) Math.sqrt(size);
+            Log.i("###","l="+l);
             long start = System.currentTimeMillis();
             Bitmap bitmap = bitmaps[0];
             //保存相对坐标
@@ -96,27 +107,30 @@ public class MainActivity extends AppCompatActivity {
             |(-1,-1)|( 0,-1)|( 1,-1)|
             -------------------------
              */
-            Node[] c = new Node[49];
+            Node[] c = new Node[size];
             //平方差
-            double sigama = 0.3;
-            double[] weights = new double[49];
+            double sigama = 1.5;
+            double[] weights = new double[size];
             double weightSum = 0;
-            int low = -(7-1)/2;
-            int high = (7-1)/2;
+            int low = -(l-1)/2;
+            int high = (l-1)/2;
             int k = 0;
             //添加相对坐标的，并计算每个点的权值
             for(int i = low; i <= high; i++ ){
                 for(int j = low; j<= high; j++){
                     c[k] = new Node(i,j);
                     weights[k] = gauss(sigama, i, j);
+                    Log.i("###","---weight="+weights[k]);
                     weightSum+=weights[k];
                     k++;
                 }
             }
             //让权值和为1
-            for(int i = 0; i < 49;i++){
+            for(int i = 0; i < size;i++){
                 weights[i] = weights[i]/weightSum;
+                Log.i("###","weight = "+weights[i]+" node = "+c[i]);
             }
+
 //            Map<Node,Integer> map = new HashMap<>();
             int widthL = bitmap.getWidth();
             int heightL = bitmap.getHeight();
@@ -128,7 +142,7 @@ public class MainActivity extends AppCompatActivity {
                     double r =0;
                     double g = 0;
                     double b = 0;
-                    for(k = 0; k < 49; k++ ){
+                    for(k = 0; k < size; k++ ){
                         Integer color = 0;
                         int x = i+c[k].getX();
                         int y = j+c[k].getY();
@@ -146,8 +160,13 @@ public class MainActivity extends AppCompatActivity {
                         g+=Color.green(color)*weights[k];
                         b+=Color.blue(color)*weights[k];
                     }
+                    int ocolor = bitmap.getPixel(i,j);
+                    int oa = Color.alpha(ocolor);
+                    int or = Color.red(ocolor);
+                    int og = Color.green(ocolor);
+                    int ob = Color.blue(ocolor);
                     blurColor = Color.argb((int)alpha,(int)r,(int)g,(int)b);
-//                    Log.i("####","color="+bitmap.getPixel(i,j)+" blurColor="+blurColor);
+                    Log.i("####","color="+oa+" "+or+" "+og+" "+ob+" "+" ;blurColor="+(int)alpha+" "+(int)r+" "+(int)g+" "+(int)b);
                     bitmap.setPixel(i,j, blurColor);
                 }
             }
