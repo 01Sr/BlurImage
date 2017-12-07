@@ -17,6 +17,13 @@ import android.widget.SeekBar;
 
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CompletionService;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorCompletionService;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -45,6 +52,8 @@ public class MainActivity extends AppCompatActivity {
             int preRadius = 0;
             private final Object lock = new Object();
             long preTime = 0;
+            ExecutorService executorService = Executors.newSingleThreadExecutor();
+            CompletionService<Bitmap> completionService = new ExecutorCompletionService(executorService);
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 Log.i("###","current progress= "+progress);
@@ -63,8 +72,8 @@ public class MainActivity extends AppCompatActivity {
                     radius = radius - preRadius;
                 }else
                     blurBitmpa = originBitmap.copy(originBitmap.getConfig(),true);
-
-                new BlurTask(MainActivity.this, blurImageView, blurBitmpa, radius, tmp>preRadius, lock).execute();
+//                Log.i("-------","seek radius="+radius);
+                completionService.submit(new BlurTask(MainActivity.this, blurImageView, blurBitmpa, radius, tmp>preRadius));
                 preRadius = tmp;
             }
 
@@ -84,45 +93,43 @@ public class MainActivity extends AppCompatActivity {
                     radius = radius - preRadius;
                 }else
                     blurBitmpa = originBitmap.copy(originBitmap.getConfig(),true);
-
-                new BlurTask(MainActivity.this, blurImageView, blurBitmpa, radius, tmp>preRadius, lock).execute();
+//                Log.i("-------","seek radius="+radius);
+                completionService.submit(new BlurTask(MainActivity.this, blurImageView, blurBitmpa, radius, tmp>preRadius));
                 preRadius = tmp;
             }
         });
     }
 
-    public class BlurTask extends AsyncTask<Object,Integer,Bitmap> {
+    public class BlurTask implements Callable<Bitmap> {
         private final Context context;
         private final ImageView imageView;
         private  Bitmap blurBitmpa;
         private final int radius;
         private final boolean more;
-        private final Object lock;
-        public BlurTask(Context context, ImageView imageView, Bitmap blurBitmpa, int radius, boolean more, Object lock){
+        public BlurTask(Context context, ImageView imageView, Bitmap blurBitmpa, int radius, boolean more){
             this.context = context;
             this.imageView = imageView;
             this.blurBitmpa = blurBitmpa;
             this.radius = radius;
             this.more = more;
-            this.lock = lock;
         }
 
         @Override
-        protected Bitmap doInBackground(Object[] objects) {
-            synchronized (lock){
-                blur2(context, blurBitmpa, radius);
-                return blurBitmpa;
-            }
+        public Bitmap call() throws Exception {
+            Log.i("+++++++","start");
+            blur2(context, blurBitmpa, radius);
+            Log.i("+++++++","blur radius="+radius);
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    if(!more)
+                        imageView.setImageBitmap(blurBitmpa);
+                    else
+                        imageView.invalidate();
+                }
+            });
+            return blurBitmpa;
         }
-
-        @Override
-        protected void onPostExecute(Bitmap bitmap) {
-            if(!more)
-                imageView.setImageBitmap(bitmap);
-            else
-                imageView.invalidate();
-        }
-
     }
 
     private Bitmap blur(@NonNull Context context, @NonNull Bitmap bitmap, int radius){
